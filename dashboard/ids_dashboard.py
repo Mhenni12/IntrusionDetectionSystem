@@ -332,6 +332,14 @@ if 'time_history' not in st.session_state:
     st.session_state.time_history = []
 if 'class_distribution' not in st.session_state:
     st.session_state.class_distribution = {'Normal': 0, 'DoS': 0, 'Probe': 0, 'R2L': 0, 'U2R': 0}
+if 'last_predicted_class' not in st.session_state:
+    st.session_state.last_predicted_class = None
+if 'last_confidence' not in st.session_state:
+    st.session_state.last_confidence = None
+if 'last_current_idx' not in st.session_state:
+    st.session_state.last_current_idx = None
+if 'last_current_flow' not in st.session_state:
+    st.session_state.last_current_flow = None
 
 # Cache model loading
 @st.cache_resource
@@ -399,6 +407,84 @@ def get_severity_color(class_name):
     }
     return color_map.get(class_name, '#00ff88')
 
+def render_detection_panel(predicted_class, confidence, current_idx, current_flow, feature_names):
+    """Render the detection panel with flow info and classification"""
+    # Real-Time Detection Panel
+    st.markdown('<div class="section-header"><h2> REAL-TIME DETECTION</h2></div>', unsafe_allow_html=True)
+    
+    # Alert banner for attacks
+    if predicted_class != 'Normal':
+        st.markdown(f"""
+        <div class="alert-box">
+            <h3>THREAT DETECTED!</h3>
+            <p>Attack Type: <strong>{predicted_class}</strong> | Confidence: <strong>{confidence*100:.1f}%</strong></p>
+        </div>
+        """, unsafe_allow_html=True)
+    
+    # Detection panel
+    col1, col2, col3 = st.columns([2, 2, 3])
+    
+    with col1:
+        st.markdown(f"""
+        <div class="flow-info">
+            <div class="flow-info-row">
+                <span class="flow-info-label">Flow ID</span>
+                <span class="flow-info-value">#{current_idx:06d}</span>
+            </div>
+            <div class="flow-info-row">
+                <span class="flow-info-label">Timestamp</span>
+                <span class="flow-info-value">{datetime.now().strftime('%H:%M:%S.%f')[:-3]}</span>
+            </div>
+            <div class="flow-info-row">
+                <span class="flow-info-label">Source IP</span>
+                <span class="flow-info-value">{generate_ip()}</span>
+            </div>
+            <div class="flow-info-row">
+                <span class="flow-info-label">Dest IP</span>
+                <span class="flow-info-value">{generate_ip()}</span>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+    
+    with col2:
+        severity_class = get_severity_class(predicted_class)
+        st.markdown(f"""
+        <div style="text-align: center; padding: 1rem;">
+            <p style="color: #8b949e; font-size: 0.9rem; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 1rem;">CLASSIFICATION</p>
+            <div class="status-badge {severity_class}">{predicted_class}</div>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        st.markdown(f"""
+        <div class="confidence-container">
+            <p style="color: #8b949e; font-size: 0.9rem; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 0.5rem;">CONFIDENCE</p>
+            <div class="confidence-bar">
+                <div class="confidence-fill" style="width: {confidence*100}%">
+                    {confidence*100:.1f}%
+                </div>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+    
+    with col3:
+        st.markdown("""
+        <div class="flow-info">
+            <p style="color: #8b949e; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 1rem;">KEY FEATURES</p>
+        """, unsafe_allow_html=True)
+        
+        key_features = ['duration', 'src_bytes', 'dst_bytes', 'count', 'srv_count']
+        for feat in key_features:
+            if feat in current_flow.index:
+                val = current_flow[feat]
+                st.markdown(f"""
+                <div class="flow-info-row">
+                    <span class="flow-info-label">{feat}</span>
+                    <span class="flow-info-value">{val:.2f}</span>
+                </div>
+                """, unsafe_allow_html=True)
+        
+        st.markdown("</div>", unsafe_allow_html=True)
+
 # Load models and data
 models = load_models()
 df, feature_names = load_dataset()
@@ -407,23 +493,23 @@ y_true = df['attack_class'].values
 class_names = ['Normal', 'DoS', 'Probe', 'R2L', 'U2R']
 
 # Header
-st.markdown('<h1 style="text-align: center; font-size: 3rem; margin-bottom: 0;">🛡️ AI-POWERED INTRUSION DETECTION SYSTEM</h1>', unsafe_allow_html=True)
+st.markdown('<h1 style="text-align: center; font-size: 3rem; margin-bottom: 0;">🛡️ NET GARDIAN: AI-POWERED INTRUSION DETECTION SYSTEM</h1>', unsafe_allow_html=True)
 st.markdown('<p style="text-align: center; font-family: Space Mono, monospace; color: #8b949e; font-size: 1.1rem; margin-top: 0.5rem;">NSL-KDD Multi-Class Detection | Real-Time Monitoring</p>', unsafe_allow_html=True)
 
 # Positioning statement
 st.markdown("""
 <div class="positioning-statement">
-    ⚡ Traditional intrusion detection systems act as black boxes. This system provides <strong>real-time, multi-class, and explainable AI-based threat detection</strong> — enabling security analysts to understand not just what threats are detected, but why, empowering faster response and continuous improvement of defense strategies.
+     Traditional intrusion detection systems act as black boxes. This system provides <strong>real-time, multi-class, and explainable AI-based threat detection</strong> — enabling security analysts to understand not just what threats are detected, but why, empowering faster response and continuous improvement of defense strategies.
 </div>
 """, unsafe_allow_html=True)
 
 # Sidebar - Control Panel
 with st.sidebar:
-    st.markdown('<h2>🎛️ CONTROL PANEL</h2>', unsafe_allow_html=True)
+    st.markdown('<h2> CONTROL PANEL</h2>', unsafe_allow_html=True)
     
     # Model selection
     selected_model = st.selectbox(
-        "🤖 SELECT MODEL",
+        " SELECT MODEL",
         options=list(models.keys()),
         index=0
     )
@@ -431,19 +517,19 @@ with st.sidebar:
     st.markdown("---")
     
     # Simulation controls
-    st.markdown('<h3>⚙️ SIMULATION</h3>', unsafe_allow_html=True)
+    st.markdown('<h3> SIMULATION</h3>', unsafe_allow_html=True)
     
     col1, col2 = st.columns(2)
     with col1:
-        if st.button("▶️ START", use_container_width=True):
+        if st.button("START", use_container_width=True):
             st.session_state.simulation_running = True
     with col2:
-        if st.button("⏹️ STOP", use_container_width=True):
+        if st.button("STOP", use_container_width=True):
             st.session_state.simulation_running = False
     
     # Speed selector
     speed = st.select_slider(
-        "⚡ SPEED",
+        " SPEED",
         options=['1x', '2x', '5x', '10x'],
         value='2x'
     )
@@ -453,21 +539,21 @@ with st.sidebar:
     st.markdown("---")
     
     # Statistics
-    st.markdown('<h3>📊 STATISTICS</h3>', unsafe_allow_html=True)
+    st.markdown('<h3> STATISTICS</h3>', unsafe_allow_html=True)
     
     st.metric("Total Flows Analyzed", f"{st.session_state.total_analyzed:,}")
     st.metric("Total Attacks Detected", f"{st.session_state.total_attacks:,}")
     
     if st.session_state.total_analyzed > 0:
         detection_rate = (st.session_state.total_attacks / st.session_state.total_analyzed) * 100
-        st.metric("Detection Rate", f"{detection_rate:.1f}%")
+        st.metric("Attack Rate", f"{detection_rate:.1f}%")
     else:
-        st.metric("Detection Rate", "0.0%")
+        st.metric("Attack Rate", "0.0%")
     
     st.markdown("---")
     
     # Reset button
-    if st.button("🔄 RESET SIMULATION", use_container_width=True):
+    if st.button(" RESET SIMULATION", use_container_width=True):
         st.session_state.current_flow_index = 0
         st.session_state.total_analyzed = 0
         st.session_state.total_attacks = 0
@@ -509,84 +595,17 @@ if st.session_state.simulation_running:
             st.session_state.attack_history.append(predicted_class)
             st.session_state.time_history.append(datetime.now())
             
-            # Real-Time Detection Panel
-            st.markdown('<div class="section-header"><h2>🔴 REAL-TIME DETECTION</h2></div>', unsafe_allow_html=True)
+            # Store last detection info for later display
+            st.session_state.last_predicted_class = predicted_class
+            st.session_state.last_confidence = confidence
+            st.session_state.last_current_idx = current_idx
+            st.session_state.last_current_flow = current_flow
             
-            # Alert banner for attacks
-            if predicted_class != 'Normal':
-                st.markdown(f"""
-                <div class="alert-box">
-                    <h3>⚠️ THREAT DETECTED!</h3>
-                    <p>Attack Type: <strong>{predicted_class}</strong> | Confidence: <strong>{confidence*100:.1f}%</strong></p>
-                </div>
-                """, unsafe_allow_html=True)
-            
-            # Detection panel
-            col1, col2, col3 = st.columns([2, 2, 3])
-            
-            with col1:
-                st.markdown(f"""
-                <div class="flow-info">
-                    <div class="flow-info-row">
-                        <span class="flow-info-label">Flow ID</span>
-                        <span class="flow-info-value">#{current_idx:06d}</span>
-                    </div>
-                    <div class="flow-info-row">
-                        <span class="flow-info-label">Timestamp</span>
-                        <span class="flow-info-value">{datetime.now().strftime('%H:%M:%S.%f')[:-3]}</span>
-                    </div>
-                    <div class="flow-info-row">
-                        <span class="flow-info-label">Source IP</span>
-                        <span class="flow-info-value">{generate_ip()}</span>
-                    </div>
-                    <div class="flow-info-row">
-                        <span class="flow-info-label">Dest IP</span>
-                        <span class="flow-info-value">{generate_ip()}</span>
-                    </div>
-                </div>
-                """, unsafe_allow_html=True)
-            
-            with col2:
-                severity_class = get_severity_class(predicted_class)
-                st.markdown(f"""
-                <div style="text-align: center; padding: 1rem;">
-                    <p style="color: #8b949e; font-size: 0.9rem; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 1rem;">CLASSIFICATION</p>
-                    <div class="status-badge {severity_class}">{predicted_class}</div>
-                </div>
-                """, unsafe_allow_html=True)
-                
-                st.markdown(f"""
-                <div class="confidence-container">
-                    <p style="color: #8b949e; font-size: 0.9rem; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 0.5rem;">CONFIDENCE</p>
-                    <div class="confidence-bar">
-                        <div class="confidence-fill" style="width: {confidence*100}%">
-                            {confidence*100:.1f}%
-                        </div>
-                    </div>
-                </div>
-                """, unsafe_allow_html=True)
-            
-            with col3:
-                st.markdown("""
-                <div class="flow-info">
-                    <p style="color: #8b949e; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 1rem;">KEY FEATURES</p>
-                """, unsafe_allow_html=True)
-                
-                key_features = ['duration', 'src_bytes', 'dst_bytes', 'count', 'srv_count']
-                for feat in key_features:
-                    if feat in current_flow.index:
-                        val = current_flow[feat]
-                        st.markdown(f"""
-                        <div class="flow-info-row">
-                            <span class="flow-info-label">{feat}</span>
-                            <span class="flow-info-value">{val:.2f}</span>
-                        </div>
-                        """, unsafe_allow_html=True)
-                
-                st.markdown("</div>", unsafe_allow_html=True)
+            # Render detection panel
+            render_detection_panel(predicted_class, confidence, current_idx, current_flow, feature_names)
             
             # Charts row
-            st.markdown('<div class="section-header"><h2>📈 ATTACK DISTRIBUTION</h2></div>', unsafe_allow_html=True)
+            st.markdown('<div class="section-header"><h2> ATTACK DISTRIBUTION</h2></div>', unsafe_allow_html=True)
             
             chart_col1, chart_col2 = st.columns(2)
             
@@ -674,7 +693,7 @@ if st.session_state.simulation_running:
                 st.plotly_chart(fig_line, use_container_width=True)
             
             # Model Performance
-            st.markdown('<div class="section-header"><h2>🎯 MODEL PERFORMANCE</h2></div>', unsafe_allow_html=True)
+            st.markdown('<div class="section-header"><h2> MODEL PERFORMANCE</h2></div>', unsafe_allow_html=True)
             
             perf_col1, perf_col2 = st.columns([1, 2])
             
@@ -809,24 +828,97 @@ if st.session_state.simulation_running:
             st.success("✅ Simulation completed! All flows analyzed.")
             st.balloons()
 
-else:
-    # Show static view when not running
-    st.markdown('<div class="section-header"><h2>⏸️ SIMULATION PAUSED</h2></div>', unsafe_allow_html=True)
-    st.info("Press **START** in the control panel to begin real-time intrusion detection simulation.")
+# Show detection panel and statistics if there's analyzed data
+if st.session_state.total_analyzed > 0:
+    # Display the last detection panel
+    if st.session_state.last_predicted_class is not None:
+        render_detection_panel(
+            st.session_state.last_predicted_class,
+            st.session_state.last_confidence,
+            st.session_state.last_current_idx,
+            st.session_state.last_current_flow,
+            feature_names
+        )
     
-    # Show summary statistics if data exists
-    if st.session_state.total_analyzed > 0:
-        st.markdown('<div class="section-header"><h2>📊 SESSION SUMMARY</h2></div>', unsafe_allow_html=True)
+    # Display statistics
+    st.markdown('<div class="section-header"><h2>📊 SESSION STATISTICS</h2></div>', unsafe_allow_html=True)
+    
+    stat_col1, stat_col2, stat_col3, stat_col4 = st.columns(4)
+    with stat_col1:
+        st.metric("Flows Analyzed", f"{st.session_state.total_analyzed:,}")
+    with stat_col2:
+        st.metric("Attacks Detected", f"{st.session_state.total_attacks:,}")
+    with stat_col3:
+        normal_count = st.session_state.class_distribution.get('Normal', 0)
+        st.metric("Normal Traffic", f"{normal_count:,}")
+    with stat_col4:
+        if st.session_state.total_analyzed > 0:
+            detection_rate = (st.session_state.total_attacks / st.session_state.total_analyzed) * 100
+            st.metric("Detection Rate", f"{detection_rate:.1f}%")
+    
+    # Class Distribution
+    st.markdown('<div class="section-header"><h2>🎓 CLASS DISTRIBUTION</h2></div>', unsafe_allow_html=True)
+    dist_df = pd.DataFrame(list(st.session_state.class_distribution.items()), columns=['Class', 'Count'])
+    fig_bar = go.Figure(data=[go.Bar(
+        x=dist_df['Class'],
+        y=dist_df['Count'],
+        marker=dict(
+            color=dist_df['Class'].map({
+                'Normal': '#00ff88',
+                'DoS': '#ff4500',
+                'Probe': '#ffd700',
+                'R2L': '#ff8c00',
+                'U2R': '#ff0000'
+            }),
+            line=dict(color='#00d9ff', width=2)
+        ),
+        text=dist_df['Count'],
+        textposition='outside',
+        textfont=dict(family='Orbitron', size=14, color='#00d9ff')
+    )])
+    fig_bar.update_layout(
+        title=dict(text='Count per Class', font=dict(family='Orbitron', size=18, color='#00d9ff')),
+        paper_bgcolor='rgba(0,0,0,0)',
+        plot_bgcolor='rgba(0,0,0,0)',
+        font=dict(color='#e0e6ed', family='Rajdhani'),
+        xaxis=dict(gridcolor='rgba(139, 148, 158, 0.2)'),
+        yaxis=dict(gridcolor='rgba(139, 148, 158, 0.2)'),
+        height=400
+    )
+    st.plotly_chart(fig_bar, use_container_width=True)
+    
+    # Time series
+    if len(st.session_state.time_history) > 1:
+        # Count attacks over time
+        time_df = pd.DataFrame({
+            'time': st.session_state.time_history,
+            'class': st.session_state.attack_history
+        })
+        time_df['is_attack'] = time_df['class'] != 'Normal'
+        time_df['attack_count'] = time_df['is_attack'].cumsum()
         
-        sum_col1, sum_col2, sum_col3, sum_col4 = st.columns(4)
-        with sum_col1:
-            st.metric("Flows Analyzed", f"{st.session_state.total_analyzed:,}")
-        with sum_col2:
-            st.metric("Attacks Detected", f"{st.session_state.total_attacks:,}")
-        with sum_col3:
-            normal_count = st.session_state.class_distribution.get('Normal', 0)
-            st.metric("Normal Traffic", f"{normal_count:,}")
-        with sum_col4:
-            if st.session_state.total_analyzed > 0:
-                detection_rate = (st.session_state.total_attacks / st.session_state.total_analyzed) * 100
-                st.metric("Detection Rate", f"{detection_rate:.1f}%")
+        fig_line = go.Figure()
+        fig_line.add_trace(go.Scatter(
+            x=list(range(len(time_df))),
+            y=time_df['attack_count'],
+            mode='lines',
+            name='Cumulative Attacks',
+            line=dict(color='#ff4500', width=3),
+            fill='tozeroy',
+            fillcolor='rgba(255, 69, 0, 0.2)'
+        ))
+        fig_line.update_layout(
+            title=dict(text='Attack Frequency Over Time', font=dict(family='Orbitron', size=18, color='#00d9ff')),
+            paper_bgcolor='rgba(0,0,0,0)',
+            plot_bgcolor='rgba(0,0,0,0)',
+            font=dict(color='#e0e6ed', family='Rajdhani'),
+            xaxis=dict(title='Flow Number', gridcolor='rgba(139, 148, 158, 0.2)'),
+            yaxis=dict(title='Cumulative Attacks', gridcolor='rgba(139, 148, 158, 0.2)'),
+            height=350
+        )
+        st.plotly_chart(fig_line, use_container_width=True)
+
+# else:
+#     # Show static view when not running and no data analyzed yet
+#     st.markdown('<div class="section-header"><h2>SIMULATION PAUSED</h2></div>', unsafe_allow_html=True)
+#     st.info("Press **START** in the control panel to begin real-time intrusion detection simulation.")
