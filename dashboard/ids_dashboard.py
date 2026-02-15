@@ -6,7 +6,6 @@ import plotly.express as px
 from datetime import datetime, timedelta
 import time
 import joblib
-from sklearn.decomposition import PCA
 from sklearn.metrics import confusion_matrix, accuracy_score, f1_score, recall_score
 import random
 
@@ -374,14 +373,6 @@ def load_dataset():
     
     return df, feature_names
 
-@st.cache_data
-# TODO: Delete
-def compute_pca(X, n_components=2):
-    """Compute PCA for visualization"""
-    pca = PCA(n_components=n_components, random_state=42)
-    X_pca = pca.fit_transform(X)
-    return X_pca, pca
-
 def generate_ip():
     """Generate random IP address"""
     return f"{random.randint(1, 255)}.{random.randint(0, 255)}.{random.randint(0, 255)}.{random.randint(1, 255)}"
@@ -414,10 +405,6 @@ df, feature_names = load_dataset()
 X = df[feature_names].values
 y_true = df['attack_class'].values
 class_names = ['Normal', 'DoS', 'Probe', 'R2L', 'U2R']
-
-# Compute PCA for visualization
-# TODO: delete
-# X_pca, pca = compute_pca(X)
 
 # Header
 st.markdown('<h1 style="text-align: center; font-size: 3rem; margin-bottom: 0;">🛡️ AI-POWERED INTRUSION DETECTION SYSTEM</h1>', unsafe_allow_html=True)
@@ -812,62 +799,7 @@ if st.session_state.simulation_running:
                         </ul>
                     </div>
                     """, unsafe_allow_html=True)
-            
-            # 2D Visualization
-            st.markdown('<div class="section-header"><h2>🗺️ 2D THREAT LANDSCAPE</h2></div>', unsafe_allow_html=True)
-            
-            # Create scatter plot
-            viz_df = pd.DataFrame({
-                'PC1': X_pca[:, 0],
-                'PC2': X_pca[:, 1],
-                'Class': df['class_name']
-            })
-            
-            fig_scatter = go.Figure()
-            
-            for class_name in class_names:
-                class_data = viz_df[viz_df['Class'] == class_name]
-                fig_scatter.add_trace(go.Scatter(
-                    x=class_data['PC1'],
-                    y=class_data['PC2'],
-                    mode='markers',
-                    name=class_name,
-                    marker=dict(
-                        size=6,
-                        color=get_severity_color(class_name),
-                        opacity=0.6,
-                        line=dict(width=0.5, color='white')
-                    ),
-                    hovertemplate=f'<b>{class_name}</b><br>PC1: %{{x:.2f}}<br>PC2: %{{y:.2f}}<extra></extra>'
-                ))
-            
-            # Highlight current point
-            fig_scatter.add_trace(go.Scatter(
-                x=[X_pca[current_idx, 0]],
-                y=[X_pca[current_idx, 1]],
-                mode='markers',
-                name='Current Flow',
-                marker=dict(
-                    size=20,
-                    color='white',
-                    symbol='star',
-                    line=dict(width=3, color='#00d9ff')
-                ),
-                hovertemplate='<b>CURRENT FLOW</b><br>PC1: %{x:.2f}<br>PC2: %{y:.2f}<extra></extra>'
-            ))
-            
-            fig_scatter.update_layout(
-                title=dict(text='PCA Projection of Network Flows', font=dict(family='Orbitron', size=18, color='#00d9ff')),
-                xaxis=dict(title='Principal Component 1', gridcolor='rgba(139, 148, 158, 0.2)'),
-                yaxis=dict(title='Principal Component 2', gridcolor='rgba(139, 148, 158, 0.2)'),
-                paper_bgcolor='rgba(0,0,0,0)',
-                plot_bgcolor='rgba(0,0,0,0)',
-                font=dict(color='#e0e6ed', family='Rajdhani'),
-                legend=dict(font=dict(family='Orbitron')),
-                height=500
-            )
-            st.plotly_chart(fig_scatter, use_container_width=True)
-            
+
             # Increment and delay
             st.session_state.current_flow_index += 1
             time.sleep(delay)
