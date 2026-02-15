@@ -1,0 +1,135 @@
+{
+    "SVM_RBF": {
+        "model_name": "SVM (RBF Kernel)",
+        "date": "2026-02-15 07:19:52",
+        "task": "Intrusion Detection",
+        "metrics": {
+            "DoS": {
+                "precision": 0.994707851819851,
+                "recall": 0.9984822202948829,
+                "f1-score": 0.996591462424931,
+                "support": 9224.0
+            },
+            "Normal": {
+                "precision": 0.9980693489844775,
+                "recall": 0.9654863290004483,
+                "f1-score": 0.9815074995253465,
+                "support": 13386.0
+            },
+            "Probe": {
+                "precision": 0.9566274827725983,
+                "recall": 0.9945217024863042,
+                "f1-score": 0.9752066115702479,
+                "support": 2373.0
+            },
+            "R2L": {
+                "precision": 0.44075829383886256,
+                "recall": 0.9346733668341709,
+                "f1-score": 0.5990338164251208,
+                "support": 199.0
+            },
+            "U2R": {
+                "precision": 0.08163265306122448,
+                "recall": 0.6153846153846154,
+                "f1-score": 0.14414414414414414,
+                "support": 13.0
+            },
+            "accuracy": 0.9798769597142291,
+            "macro avg": {
+                "precision": 0.6943591260954027,
+                "recall": 0.9017096468000844,
+                "f1-score": 0.7392967068179581,
+                "support": 25195.0
+            },
+            "weighted avg": {
+                "precision": 0.9880607530174887,
+                "recall": 0.9798769597142291,
+                "f1-score": 0.9829833669637833,
+                "support": 25195.0
+            }
+        },
+        "hyperparameters": {
+            "C": 1.0,
+            "break_ties": false,
+            "cache_size": 200,
+            "class_weight": "balanced",
+            "coef0": 0.0,
+            "decision_function_shape": "ovr",
+            "degree": 3,
+            "gamma": "scale",
+            "kernel": "rbf",
+            "max_iter": -1,
+            "probability": false,
+            "random_state": null,
+            "shrinking": true,
+            "tol": 0.001,
+            "verbose": false
+        }
+    },
+    "LogisticRegression": {
+        "model_name": "Logistic Regression",
+        "date": "2026-02-15 07:40:42",
+        "task": "Intrusion Detection",
+        "metrics": {
+            "DoS": {
+                "precision": 0.9919621228804228,
+                "recall": 0.9766912402428447,
+                "f1-score": 0.984267453294002,
+                "support": 9224.0
+            },
+            "Normal": {
+                "precision": 0.981414395967869,
+                "recall": 0.9309726580008965,
+                "f1-score": 0.9555282932065634,
+                "support": 13386.0
+            },
+            "Probe": {
+                "precision": 0.8781132075471698,
+                "recall": 0.9806152549515381,
+                "f1-score": 0.9265379255425045,
+                "support": 2373.0
+            },
+            "R2L": {
+                "precision": 0.32978723404255317,
+                "recall": 0.9346733668341709,
+                "f1-score": 0.4875491480996068,
+                "support": 199.0
+            },
+            "U2R": {
+                "precision": 0.03482587064676617,
+                "recall": 0.5384615384615384,
+                "f1-score": 0.06542056074766354,
+                "support": 13.0
+            },
+            "accuracy": 0.9522127406231395,
+            "macro avg": {
+                "precision": 0.6432205662169562,
+                "recall": 0.8722828116981978,
+                "f1-score": 0.6838606761780681,
+                "support": 25195.0
+            },
+            "weighted avg": {
+                "precision": 0.9699112825273755,
+                "recall": 0.9522127406231395,
+                "f1-score": 0.9591638010367467,
+                "support": 25195.0
+            }
+        },
+        "hyperparameters": {
+            "C": 1.0,
+            "class_weight": "balanced",
+            "dual": false,
+            "fit_intercept": true,
+            "intercept_scaling": 1,
+            "l1_ratio": 0.0,
+            "max_iter": 1000,
+            "n_jobs": null,
+            "penalty": "deprecated",
+            "random_state": null,
+            "solver": "lbfgs",
+            "tol": 0.0001,
+            "verbose": 0,
+            "warm_start": false
+        }
+    }
+}
